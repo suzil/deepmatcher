@@ -2,7 +2,7 @@ lint:
 	flake8 --show-source deepmatcher/
 	isort --check-only -rc deepmatcher/ --diff
 
-	# flake8 --show-source test/
+	flake8 --show-source test/
 	isort --check-only -rc test/ --diff
 
 	flake8 --show-source setup.py
