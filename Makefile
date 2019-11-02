@@ -9,7 +9,7 @@ lint:
 	isort --check-only setup.py --diff
 
 test:
-	python -m nosetests -v
+	python -m unittest
 
 install:
 	pip install -r requirements/ci.txt
