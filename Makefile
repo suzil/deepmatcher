@@ -1,5 +1,5 @@
 lint:
-	# flake8 --show-source deepmatcher/
+	flake8 --show-source deepmatcher/
 	isort --check-only -rc deepmatcher/ --diff
 
 	# flake8 --show-source test/
