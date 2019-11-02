@@ -156,7 +156,6 @@ class Runner:
         criterion=None,
         optimizer=None,
         train=False,
-        device=None,
         batch_size=32,
         batch_callback=None,
         epoch_callback=None,
@@ -166,6 +165,7 @@ class Runner:
         return_predictions=False,
         **kwargs
     ):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         sort_in_buckets = train
         run_iter = MatchingIterator(
@@ -177,16 +177,9 @@ class Runner:
             sort_in_buckets=sort_in_buckets,
         )
 
-        if device == "cpu":
-            model = model.cpu()
-            if criterion:
-                criterion = criterion.cpu()
-        elif torch.cuda.is_available():
-            model = model.cuda()
-            if criterion:
-                criterion = criterion.cuda()
-        elif device == "gpu":
-            raise ValueError("No GPU available.")
+        model = model.to(device)
+        if criterion:
+            criterion = criterion.to(device)
 
         if train:
             model.train()
