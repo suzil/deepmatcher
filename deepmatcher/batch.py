@@ -32,6 +32,7 @@ class AttrTensor(AttrTensor_):
 
     @staticmethod
     def __new__(cls, *args, **kwargs):
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if len(kwargs) == 0:
             return super(AttrTensor, cls).__new__(cls, *args)
         else:
@@ -50,13 +51,11 @@ class AttrTensor(AttrTensor_):
                 word_probs = torch.Tensor(
                     [[raw_word_probs[int(w)] for w in b] for b in data.data]
                 )
-                if data.is_cuda:
-                    word_probs = word_probs.cuda()
+                word_probs = word_probs.to(device)
             pc = None
             if "pc" in train_info.metadata:
                 pc = torch.Tensor(train_info.metadata["pc"][name])
-                if data.is_cuda:
-                    pc = pc.cuda()
+                pc = pc.to(device)
             return AttrTensor(data, lengths, word_probs, pc)
 
     @staticmethod
