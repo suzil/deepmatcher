@@ -6,10 +6,11 @@ from test import test_dir_path
 
 import pandas as pd
 import torch
+from nose.tools import *
+
 from deepmatcher import MatchingModel, attr_summarizers
 from deepmatcher.data.field import FastText, MatchingField
 from deepmatcher.data.process import process, process_unlabeled
-from nose.tools import *
 
 try:
     from urllib.parse import urljoin

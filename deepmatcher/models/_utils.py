@@ -1,8 +1,9 @@
 import pdb
 
-import deepmatcher as dm
 import six
 import torch
+
+import deepmatcher as dm
 
 from ..batch import AttrTensor
 

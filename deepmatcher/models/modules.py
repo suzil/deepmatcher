@@ -4,12 +4,13 @@ import abc
 import logging
 import math
 
-import deepmatcher as dm
 import six
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+
+import deepmatcher as dm
 
 from ..batch import AttrTensor
 from . import _utils

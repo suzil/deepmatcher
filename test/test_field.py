@@ -5,6 +5,9 @@ from collections import Counter
 from test import test_dir_path
 
 import torch
+from nose.tools import *
+from torchtext.vocab import Vectors
+
 from deepmatcher.data.dataset import MatchingDataset
 from deepmatcher.data.field import (
     FastText,
@@ -13,8 +16,6 @@ from deepmatcher.data.field import (
     MatchingVocab,
     reset_vector_cache,
 )
-from nose.tools import *
-from torchtext.vocab import Vectors
 
 try:
     from urllib.parse import urljoin

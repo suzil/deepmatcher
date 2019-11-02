@@ -2,10 +2,11 @@ import copy
 import logging
 from collections import Mapping
 
-import deepmatcher as dm
 import six
 import torch
 import torch.nn as nn
+
+import deepmatcher as dm
 
 from ..data import MatchingDataset, MatchingIterator
 from ..runner import Runner
