@@ -1,3 +1,4 @@
 black
 isort
 nose
+pre-commit
