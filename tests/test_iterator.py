@@ -3,7 +3,7 @@ import shutil
 
 from conftest import embeddings, test_dir_path
 
-from deepmatcher.data.iterator import create_matching_splits
+from deepmatcher.data.iterator import MatchingIterator
 from deepmatcher.data.process import process
 
 
@@ -35,11 +35,11 @@ def test_splits_1():
         pca=False,
     )
 
-    splits = create_matching_splits(datasets, batch_size=16)
+    splits = MatchingIterator.splits(datasets, batch_size=16)
     assert splits[0].batch_size == 16
     assert splits[1].batch_size == 16
     assert splits[2].batch_size == 16
-    splits_sorted = create_matching_splits(
+    splits_sorted = MatchingIterator.splits(
         datasets, batch_sizes=[16, 32, 64], sort_in_buckets=False
     )
     assert splits_sorted[0].batch_size == 16
@@ -81,11 +81,11 @@ def test_create_batches_1():
         pca=False,
     )
 
-    splits = create_matching_splits(datasets, batch_size=16)
+    splits = MatchingIterator.splits(datasets, batch_size=16)
     batch_splits = [split.create_batches() for split in splits]
     assert batch_splits
 
-    sorted_splits = create_matching_splits(
+    sorted_splits = MatchingIterator.splits(
         datasets, batch_sizes=[16, 32, 64], sort_in_buckets=False
     )
     batch_sorted_splits = [
