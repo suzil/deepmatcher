@@ -1,9 +1,10 @@
 import os
 import shutil
 
+from conftest import embeddings, test_dir_path
+
 from deepmatcher.data.iterator import create_matching_splits
 from deepmatcher.data.process import process
-from tests import embeddings, test_dir_path
 
 
 def test_splits_1():

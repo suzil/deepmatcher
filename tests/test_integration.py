@@ -1,307 +1,279 @@
 import os
 import shutil
-import unittest
+from collections import namedtuple
+
+import pytest
+from conftest import embeddings, test_dir_path
 
 from deepmatcher import MatchingModel, attr_summarizers
 from deepmatcher.data.process import process, process_unlabeled
-from tests import embeddings, test_dir_path
+
+Datasets = namedtuple("Datasets", "train valid test")
 
 
-class ModelTrainSaveLoadTest(unittest.TestCase):
-    def setUp(self):
-        self.vectors_cache_dir = ".cache"
-        if os.path.exists(self.vectors_cache_dir):
-            shutil.rmtree(self.vectors_cache_dir)
+@pytest.fixture(scope="module")
+def datasets():
+    vectors_cache_dir = ".cache"
+    if os.path.exists(vectors_cache_dir):
+        shutil.rmtree(vectors_cache_dir)
 
-        self.data_cache_path = os.path.join(
-            test_dir_path, "test_datasets", "train_cache.pth"
-        )
-        if os.path.exists(self.data_cache_path):
-            os.remove(self.data_cache_path)
+    data_cache_path = os.path.join(test_dir_path, "test_datasets", "train_cache.pth")
+    if os.path.exists(data_cache_path):
+        os.remove(data_cache_path)
 
-        self.train, self.valid, self.test = process(
-            path=os.path.join(test_dir_path, "test_datasets"),
-            cache="train_cache.pth",
-            train="test_train.csv",
-            validation="test_valid.csv",
-            test="test_test.csv",
-            embeddings=embeddings,
-            embeddings_cache_path="",
-            ignore_columns=("left_id", "right_id"),
-        )
+    train, valid, test = process(
+        path=os.path.join(test_dir_path, "test_datasets"),
+        cache="train_cache.pth",
+        train="test_train.csv",
+        validation="test_valid.csv",
+        test="test_test.csv",
+        embeddings=embeddings,
+        embeddings_cache_path="",
+        ignore_columns=("left_id", "right_id"),
+    )
+    yield Datasets(train, valid, test)
 
-    def tearDown(self):
-        if os.path.exists(self.data_cache_path):
-            os.remove(self.data_cache_path)
+    if os.path.exists(data_cache_path):
+        os.remove(data_cache_path)
 
-        if os.path.exists(self.vectors_cache_dir):
-            shutil.rmtree(self.vectors_cache_dir)
-
-    def test_sif(self):
-        model_save_path = "sif_model.pth"
-        model = MatchingModel(attr_summarizer="sif")
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
-        s1 = model.run_eval(self.test)
-
-        model2 = MatchingModel(attr_summarizer="sif")
-        model2.load_state(model_save_path)
-        s2 = model2.run_eval(self.test)
-
-        self.assertEqual(s1, s2)
-
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
-
-    def test_rnn(self):
-        model_save_path = "rnn_model.pth"
-        model = MatchingModel(attr_summarizer="rnn")
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
-        s1 = model.run_eval(self.test)
-
-        model2 = MatchingModel(attr_summarizer="rnn")
-        model2.load_state(model_save_path)
-        s2 = model2.run_eval(self.test)
-
-        self.assertEqual(s1, s2)
-
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
-
-    def test_attention(self):
-        model_save_path = "attention_model.pth"
-        model = MatchingModel(attr_summarizer="attention")
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
-
-        s1 = model.run_eval(self.test)
-
-        model2 = MatchingModel(attr_summarizer="attention")
-        model2.load_state(model_save_path)
-        s2 = model2.run_eval(self.test)
-
-        self.assertEqual(s1, s2)
-
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
-
-    def test_hybrid(self):
-        model_save_path = "hybrid_model.pth"
-        model = MatchingModel(attr_summarizer="hybrid")
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
-
-        s1 = model.run_eval(self.test)
-
-        model2 = MatchingModel(attr_summarizer="hybrid")
-        model2.load_state(model_save_path)
-        s2 = model2.run_eval(self.test)
-
-        self.assertEqual(s1, s2)
-
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
-
-    def test_hybrid_self_attention(self):
-        model_save_path = "self_att_hybrid_model.pth"
-        model = MatchingModel(
-            attr_summarizer=attr_summarizers.Hybrid(
-                word_contextualizer="self-attention"
-            )
-        )
-
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
-
-        s1 = model.run_eval(self.test)
-
-        model2 = MatchingModel(
-            attr_summarizer=attr_summarizers.Hybrid(
-                word_contextualizer="self-attention"
-            )
-        )
-        model2.load_state(model_save_path)
-        s2 = model2.run_eval(self.test)
-
-        self.assertEqual(s1, s2)
-
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
+    if os.path.exists(vectors_cache_dir):
+        shutil.rmtree(vectors_cache_dir)
 
 
-class ModelPredictUnlabeledTest(unittest.TestCase):
-    def setUp(self):
-        self.vectors_cache_dir = ".cache"
-        if os.path.exists(self.vectors_cache_dir):
-            shutil.rmtree(self.vectors_cache_dir)
+def test_train_save_load_sif(datasets):
+    model_save_path = "sif_model.pth"
+    model = MatchingModel(attr_summarizer="sif")
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
+    s1 = model.run_eval(datasets.test)
 
-        self.data_cache_path = os.path.join(
-            test_dir_path, "test_datasets", "train_cache.pth"
-        )
-        if os.path.exists(self.data_cache_path):
-            os.remove(self.data_cache_path)
+    model2 = MatchingModel(attr_summarizer="sif")
+    model2.load_state(model_save_path)
+    s2 = model2.run_eval(datasets.test)
 
-        self.train, self.valid, self.test = process(
-            path=os.path.join(test_dir_path, "test_datasets"),
-            cache="train_cache.pth",
-            train="test_train.csv",
-            validation="test_valid.csv",
-            test="test_test.csv",
-            embeddings=embeddings,
-            embeddings_cache_path="",
-            ignore_columns=("left_id", "right_id"),
-        )
+    assert s1 == s2
 
-    def tearDown(self):
-        if os.path.exists(self.data_cache_path):
-            os.remove(self.data_cache_path)
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)
 
-        if os.path.exists(self.vectors_cache_dir):
-            shutil.rmtree(self.vectors_cache_dir)
 
-    def test_sif(self):
-        model_save_path = "sif_model.pth"
-        model = MatchingModel(attr_summarizer="sif")
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
+def test_train_save_load_rnn(datasets):
+    model_save_path = "rnn_model.pth"
+    model = MatchingModel(attr_summarizer="rnn")
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
+    s1 = model.run_eval(datasets.test)
 
-        unlabeled = process_unlabeled(
-            path=os.path.join(test_dir_path, "test_datasets", "test_unlabeled.csv"),
-            trained_model=model,
-            ignore_columns=("left_id", "right_id"),
-        )
+    model2 = MatchingModel(attr_summarizer="rnn")
+    model2.load_state(model_save_path)
+    s2 = model2.run_eval(datasets.test)
 
-        pred_test = model.run_eval(self.test, return_predictions=True)
-        pred_unlabeled = model.run_prediction(unlabeled)
+    assert s1 == s2
 
-        self.assertEqual(
-            sorted(tup[1] for tup in pred_test),
-            sorted(list(pred_unlabeled["match_score"])),
-        )
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)
 
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
 
-    def test_rnn(self):
-        model_save_path = "rnn_model.pth"
-        model = MatchingModel(attr_summarizer="rnn")
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
+def test_train_save_load_attention(datasets):
+    model_save_path = "attention_model.pth"
+    model = MatchingModel(attr_summarizer="attention")
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
 
-        unlabeled = process_unlabeled(
-            path=os.path.join(test_dir_path, "test_datasets", "test_test.csv"),
-            trained_model=model,
-            ignore_columns=("left_id", "right_id", "label"),
-        )
+    s1 = model.run_eval(datasets.test)
 
-        pred_test = model.run_eval(self.test, return_predictions=True)
-        pred_unlabeled = model.run_prediction(unlabeled)
+    model2 = MatchingModel(attr_summarizer="attention")
+    model2.load_state(model_save_path)
+    s2 = model2.run_eval(datasets.test)
 
-        self.assertEqual(
-            sorted(tup[1] for tup in pred_test),
-            sorted(list(pred_unlabeled["match_score"])),
-        )
+    assert s1 == s2
 
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)
 
-    def test_attention(self):
-        model_save_path = "attention_model.pth"
-        model = MatchingModel(attr_summarizer="attention")
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
 
-        unlabeled = process_unlabeled(
-            path=os.path.join(test_dir_path, "test_datasets", "test_unlabeled.csv"),
-            trained_model=model,
-            ignore_columns=("left_id", "right_id"),
-        )
+def test_train_save_load_hybrid(datasets):
+    model_save_path = "hybrid_model.pth"
+    model = MatchingModel(attr_summarizer="hybrid")
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
 
-        pred_test = model.run_eval(self.test, return_predictions=True)
-        pred_unlabeled = model.run_prediction(unlabeled)
+    s1 = model.run_eval(datasets.test)
 
-        self.assertEqual(
-            sorted(tup[1] for tup in pred_test),
-            sorted(list(pred_unlabeled["match_score"])),
-        )
+    model2 = MatchingModel(attr_summarizer="hybrid")
+    model2.load_state(model_save_path)
+    s2 = model2.run_eval(datasets.test)
 
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
+    assert s1 == s2
 
-    def test_hybrid(self):
-        model_save_path = "hybrid_model.pth"
-        model = MatchingModel(attr_summarizer="hybrid")
-        model.run_train(
-            self.train,
-            self.valid,
-            epochs=1,
-            batch_size=8,
-            best_save_path=model_save_path,
-            pos_neg_ratio=3,
-        )
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)
 
-        unlabeled = process_unlabeled(
-            path=os.path.join(test_dir_path, "test_datasets", "test_unlabeled.csv"),
-            trained_model=model,
-            ignore_columns=("left_id", "right_id"),
-        )
 
-        pred_test = model.run_eval(self.test, return_predictions=True)
-        pred_unlabeled = model.run_prediction(unlabeled)
+def test_train_save_load_hybrid_self_attention(datasets):
+    model_save_path = "self_att_hybrid_model.pth"
+    model = MatchingModel(
+        attr_summarizer=attr_summarizers.Hybrid(word_contextualizer="self-attention")
+    )
 
-        self.assertEqual(
-            sorted(tup[1] for tup in pred_test),
-            sorted(list(pred_unlabeled["match_score"])),
-        )
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
 
-        if os.path.exists(model_save_path):
-            os.remove(model_save_path)
+    s1 = model.run_eval(datasets.test)
+
+    model2 = MatchingModel(
+        attr_summarizer=attr_summarizers.Hybrid(word_contextualizer="self-attention")
+    )
+    model2.load_state(model_save_path)
+    s2 = model2.run_eval(datasets.test)
+
+    assert s1 == s2
+
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)
+
+
+def test_predict_unlabeled_sif(datasets):
+    model_save_path = "sif_model.pth"
+    model = MatchingModel(attr_summarizer="sif")
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
+
+    unlabeled = process_unlabeled(
+        path=os.path.join(test_dir_path, "test_datasets", "test_unlabeled.csv"),
+        trained_model=model,
+        ignore_columns=("left_id", "right_id"),
+    )
+
+    pred_test = model.run_eval(datasets.test, return_predictions=True)
+    pred_unlabeled = model.run_prediction(unlabeled)
+
+    assert sorted(tup[1] for tup in pred_test) == sorted(
+        list(pred_unlabeled["match_score"])
+    )
+
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)
+
+
+def test_predict_unlabeled_rnn(datasets):
+    model_save_path = "rnn_model.pth"
+    model = MatchingModel(attr_summarizer="rnn")
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
+
+    unlabeled = process_unlabeled(
+        path=os.path.join(test_dir_path, "test_datasets", "test_test.csv"),
+        trained_model=model,
+        ignore_columns=("left_id", "right_id", "label"),
+    )
+
+    pred_test = model.run_eval(datasets.test, return_predictions=True)
+    pred_unlabeled = model.run_prediction(unlabeled)
+
+    assert sorted(tup[1] for tup in pred_test) == sorted(
+        list(pred_unlabeled["match_score"])
+    )
+
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)
+
+
+def test_predict_unlabeled_attention(datasets):
+    model_save_path = "attention_model.pth"
+    model = MatchingModel(attr_summarizer="attention")
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
+
+    unlabeled = process_unlabeled(
+        path=os.path.join(test_dir_path, "test_datasets", "test_unlabeled.csv"),
+        trained_model=model,
+        ignore_columns=("left_id", "right_id"),
+    )
+
+    pred_test = model.run_eval(datasets.test, return_predictions=True)
+    pred_unlabeled = model.run_prediction(unlabeled)
+
+    assert sorted(tup[1] for tup in pred_test) == sorted(
+        list(pred_unlabeled["match_score"])
+    )
+
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)
+
+
+def test_predict_unlabeled_hybrid(datasets):
+    model_save_path = "hybrid_model.pth"
+    model = MatchingModel(attr_summarizer="hybrid")
+    model.run_train(
+        datasets.train,
+        datasets.valid,
+        epochs=1,
+        batch_size=8,
+        best_save_path=model_save_path,
+        pos_neg_ratio=3,
+    )
+
+    unlabeled = process_unlabeled(
+        path=os.path.join(test_dir_path, "test_datasets", "test_unlabeled.csv"),
+        trained_model=model,
+        ignore_columns=("left_id", "right_id"),
+    )
+
+    pred_test = model.run_eval(datasets.test, return_predictions=True)
+    pred_unlabeled = model.run_prediction(unlabeled)
+
+    assert sorted(tup[1] for tup in pred_test) == sorted(
+        list(pred_unlabeled["match_score"])
+    )
+
+    if os.path.exists(model_save_path):
+        os.remove(model_save_path)

@@ -4,12 +4,12 @@ import shutil
 
 import pandas as pd
 import pytest
+from conftest import embeddings, test_dir_path
 from torchtext.utils import unicode_csv_reader
 
 from deepmatcher.data.dataset import MatchingDataset, split
 from deepmatcher.data.field import MatchingField
 from deepmatcher.data.process import _make_fields, process
-from tests import embeddings, test_dir_path
 
 
 def test_class_matching_dataset():
@@ -23,26 +23,6 @@ def test_class_matching_dataset():
     assert md.all_right_fields == ["right_a"]
     assert md.all_text_fields == ["left_a", "right_a"]
     assert md.canonical_text_fields == ["_a"]
-
-
-@pytest.fixture(scope="module")
-def data_dir():
-    return os.path.join(test_dir_path, "test_datasets")
-
-
-@pytest.fixture(scope="module")
-def train():
-    return "test_train.csv"
-
-
-@pytest.fixture(scope="module")
-def validation():
-    return "test_valid.csv"
-
-
-@pytest.fixture(scope="module")
-def test():
-    return "test_test.csv"
 
 
 @pytest.fixture(scope="module")
@@ -61,10 +41,10 @@ def label_attr():
 
 
 @pytest.fixture(scope="module")
-def fields(id_attr, label_attr, data_dir, train):
+def fields(id_attr, label_attr, data_dir, train_filename):
     ignore_columns = ["left_id", "right_id"]
     with io.open(
-        os.path.expanduser(os.path.join(data_dir, train)), encoding="utf8"
+        os.path.expanduser(os.path.join(data_dir, train_filename)), encoding="utf8"
     ) as f:
         header = next(unicode_csv_reader(f))
     return _make_fields(
@@ -86,13 +66,20 @@ def remove_cache(data_dir, cache_name):
 
 
 def test_splits_1(
-    data_dir, train, validation, test, fields, column_naming, cache_name, remove_cache
+    data_dir,
+    train_filename,
+    valid_filename,
+    test_filename,
+    fields,
+    column_naming,
+    cache_name,
+    remove_cache,
 ):
     datasets = MatchingDataset.splits(
         data_dir,
-        train,
-        validation,
-        test,
+        train_filename,
+        valid_filename,
+        test_filename,
         fields,
         None,
         None,
@@ -104,13 +91,20 @@ def test_splits_1(
 
 
 def test_splits_2(
-    data_dir, train, validation, test, fields, column_naming, cache_name, remove_cache
+    data_dir,
+    train_filename,
+    valid_filename,
+    test_filename,
+    fields,
+    column_naming,
+    cache_name,
+    remove_cache,
 ):
     datasets = MatchingDataset.splits(
         data_dir,
-        train,
-        validation,
-        test,
+        train_filename,
+        valid_filename,
+        test_filename,
         fields,
         None,
         None,
@@ -124,8 +118,8 @@ def test_splits_2(
         MatchingDataset.splits(
             data_dir,
             "sample_table_small.csv",
-            validation,
-            test,
+            valid_filename,
+            test_filename,
             fields,
             None,
             None,
@@ -138,13 +132,20 @@ def test_splits_2(
 
 
 def test_splits_3(
-    data_dir, train, validation, test, fields, column_naming, cache_name, remove_cache
+    data_dir,
+    train_filename,
+    valid_filename,
+    test_filename,
+    fields,
+    column_naming,
+    cache_name,
+    remove_cache,
 ):
     datasets = MatchingDataset.splits(
         data_dir,
-        train,
-        validation,
-        test,
+        train_filename,
+        valid_filename,
+        test_filename,
         fields,
         None,
         None,
@@ -156,9 +157,9 @@ def test_splits_3(
 
     datasets_2 = MatchingDataset.splits(
         data_dir,
-        train,
-        validation,
-        test,
+        train_filename,
+        valid_filename,
+        test_filename,
         fields,
         None,
         None,
