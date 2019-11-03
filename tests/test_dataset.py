@@ -1,10 +1,9 @@
 import io
 import os
 import shutil
-import unittest
 
 import pandas as pd
-from nose.tools import raises
+import pytest
 from torchtext.utils import unicode_csv_reader
 
 from deepmatcher.data.dataset import MatchingDataset, split
@@ -26,207 +25,242 @@ def test_class_matching_dataset():
     assert md.canonical_text_fields == ["_a"]
 
 
-class MatchingDatasetSplitsTestCases(unittest.TestCase):
-    def setUp(self):
-        self.data_dir = os.path.join(test_dir_path, "test_datasets")
-        self.train = "test_train.csv"
-        self.validation = "test_valid.csv"
-        self.test = "test_test.csv"
-        self.cache_name = "test_cacheddata.pth"
-        with io.open(
-            os.path.expanduser(os.path.join(self.data_dir, self.train)), encoding="utf8"
-        ) as f:
-            header = next(unicode_csv_reader(f))
+@pytest.fixture(scope="module")
+def data_dir():
+    return os.path.join(test_dir_path, "test_datasets")
 
-        id_attr = "id"
-        label_attr = "label"
-        ignore_columns = ["left_id", "right_id"]
-        self.fields = _make_fields(
-            header, id_attr, label_attr, ignore_columns, True, "nltk", False
-        )
 
-        self.column_naming = {
-            "id": id_attr,
-            "left": "left_",
-            "right": "right_",
-            "label": label_attr,
-        }
+@pytest.fixture(scope="module")
+def train():
+    return "test_train.csv"
 
-    def tearDown(self):
-        cache_name = os.path.join(self.data_dir, self.cache_name)
-        if os.path.exists(cache_name):
-            os.remove(cache_name)
 
-    def test_splits_1(self):
-        datasets = MatchingDataset.splits(
-            self.data_dir,
-            self.train,
-            self.validation,
-            self.test,
-            self.fields,
-            None,
-            None,
-            self.column_naming,
-            self.cache_name,
-            train_pca=False,
-        )
-        assert datasets
+@pytest.fixture(scope="module")
+def validation():
+    return "test_valid.csv"
 
-    @raises(MatchingDataset.CacheStaleException)
-    def test_splits_2(self):
-        datasets = MatchingDataset.splits(
-            self.data_dir,
-            self.train,
-            self.validation,
-            self.test,
-            self.fields,
-            None,
-            None,
-            self.column_naming,
-            self.cache_name,
-            train_pca=False,
-        )
-        assert datasets
 
-        datasets_2 = MatchingDataset.splits(
-            self.data_dir,
+@pytest.fixture(scope="module")
+def test():
+    return "test_test.csv"
+
+
+@pytest.fixture(scope="module")
+def cache_name():
+    return "test_cacheddata.pth"
+
+
+@pytest.fixture(scope="module")
+def id_attr():
+    return "id"
+
+
+@pytest.fixture(scope="module")
+def label_attr():
+    return "label"
+
+
+@pytest.fixture(scope="module")
+def fields(id_attr, label_attr, data_dir, train):
+    ignore_columns = ["left_id", "right_id"]
+    with io.open(
+        os.path.expanduser(os.path.join(data_dir, train)), encoding="utf8"
+    ) as f:
+        header = next(unicode_csv_reader(f))
+    return _make_fields(
+        header, id_attr, label_attr, ignore_columns, True, "nltk", False
+    )
+
+
+@pytest.fixture(scope="module")
+def column_naming(id_attr, label_attr):
+    return {"id": id_attr, "left": "left_", "right": "right_", "label": label_attr}
+
+
+@pytest.fixture
+def remove_cache(data_dir, cache_name):
+    yield
+    cache_name = os.path.join(data_dir, cache_name)
+    if os.path.exists(cache_name):
+        os.remove(cache_name)
+
+
+def test_splits_1(
+    data_dir, train, validation, test, fields, column_naming, cache_name, remove_cache
+):
+    datasets = MatchingDataset.splits(
+        data_dir,
+        train,
+        validation,
+        test,
+        fields,
+        None,
+        None,
+        column_naming,
+        cache_name,
+        train_pca=False,
+    )
+    assert datasets
+
+
+def test_splits_2(
+    data_dir, train, validation, test, fields, column_naming, cache_name, remove_cache
+):
+    datasets = MatchingDataset.splits(
+        data_dir,
+        train,
+        validation,
+        test,
+        fields,
+        None,
+        None,
+        column_naming,
+        cache_name,
+        train_pca=False,
+    )
+    assert datasets
+
+    with pytest.raises(MatchingDataset.CacheStaleException):
+        MatchingDataset.splits(
+            data_dir,
             "sample_table_small.csv",
-            self.validation,
-            self.test,
-            self.fields,
+            validation,
+            test,
+            fields,
             None,
             None,
-            self.column_naming,
-            self.cache_name,
+            column_naming,
+            cache_name,
             True,
             False,
             train_pca=False,
         )
-        assert datasets_2
-
-    def test_splits_3(self):
-        datasets = MatchingDataset.splits(
-            self.data_dir,
-            self.train,
-            self.validation,
-            self.test,
-            self.fields,
-            None,
-            None,
-            self.column_naming,
-            self.cache_name,
-            train_pca=False,
-        )
-        assert datasets
-
-        datasets_2 = MatchingDataset.splits(
-            self.data_dir,
-            self.train,
-            self.validation,
-            self.test,
-            self.fields,
-            None,
-            None,
-            self.column_naming,
-            self.cache_name,
-            False,
-            False,
-            train_pca=False,
-        )
-        assert datasets_2
 
 
-class DataframeSplitTestCases(unittest.TestCase):
-    def test_split_1(self):
-        labeled_path = os.path.join(
-            test_dir_path, "test_datasets", "sample_table_large.csv"
-        )
-        labeled_table = pd.read_csv(labeled_path)
-        ori_cols = list(labeled_table.columns)
-        out_path = os.path.join(test_dir_path, "test_datasets")
-        train_prefix = "train.csv"
-        valid_prefix = "valid.csv"
-        test_prefix = "test.csv"
-        split(labeled_table, out_path, train_prefix, valid_prefix, test_prefix)
+def test_splits_3(
+    data_dir, train, validation, test, fields, column_naming, cache_name, remove_cache
+):
+    datasets = MatchingDataset.splits(
+        data_dir,
+        train,
+        validation,
+        test,
+        fields,
+        None,
+        None,
+        column_naming,
+        cache_name,
+        train_pca=False,
+    )
+    assert datasets
 
-        train_path = os.path.join(out_path, train_prefix)
-        valid_path = os.path.join(out_path, valid_prefix)
-        test_path = os.path.join(out_path, test_prefix)
-
-        train = pd.read_csv(train_path)
-        valid = pd.read_csv(valid_path)
-        test = pd.read_csv(test_path)
-
-        self.assertEqual(list(train.columns), ori_cols)
-        self.assertEqual(list(valid.columns), ori_cols)
-        self.assertEqual(list(test.columns), ori_cols)
-
-        if os.path.exists(train_path):
-            os.remove(train_path)
-        if os.path.exists(valid_path):
-            os.remove(valid_path)
-        if os.path.exists(test_path):
-            os.remove(test_path)
-
-    def test_split_2(self):
-        labeled_path = os.path.join(
-            test_dir_path, "test_datasets", "sample_table_large.csv"
-        )
-        labeled_table = pd.read_csv(labeled_path)
-        ori_cols = list(labeled_table.columns)
-        out_path = os.path.join(test_dir_path, "test_datasets")
-        train_prefix = "train.csv"
-        valid_prefix = "valid.csv"
-        test_prefix = "test.csv"
-        split(labeled_path, out_path, train_prefix, valid_prefix, test_prefix)
-
-        train_path = os.path.join(out_path, train_prefix)
-        valid_path = os.path.join(out_path, valid_prefix)
-        test_path = os.path.join(out_path, test_prefix)
-
-        train = pd.read_csv(train_path)
-        valid = pd.read_csv(valid_path)
-        test = pd.read_csv(test_path)
-
-        self.assertEqual(list(train.columns), ori_cols)
-        self.assertEqual(list(valid.columns), ori_cols)
-        self.assertEqual(list(test.columns), ori_cols)
-
-        if os.path.exists(train_path):
-            os.remove(train_path)
-        if os.path.exists(valid_path):
-            os.remove(valid_path)
-        if os.path.exists(test_path):
-            os.remove(test_path)
+    datasets_2 = MatchingDataset.splits(
+        data_dir,
+        train,
+        validation,
+        test,
+        fields,
+        None,
+        None,
+        column_naming,
+        cache_name,
+        False,
+        False,
+        train_pca=False,
+    )
+    assert datasets_2
 
 
-class GetRawTableTestCases(unittest.TestCase):
-    def test_get_raw_table(self):
-        vectors_cache_dir = ".cache"
-        if os.path.exists(vectors_cache_dir):
-            shutil.rmtree(vectors_cache_dir)
+def test_split_1():
+    labeled_path = os.path.join(
+        test_dir_path, "test_datasets", "sample_table_large.csv"
+    )
+    labeled_table = pd.read_csv(labeled_path)
+    ori_cols = list(labeled_table.columns)
+    out_path = os.path.join(test_dir_path, "test_datasets")
+    train_prefix = "train.csv"
+    valid_prefix = "valid.csv"
+    test_prefix = "test.csv"
+    split(labeled_table, out_path, train_prefix, valid_prefix, test_prefix)
 
-        data_cache_path = os.path.join(test_dir_path, "test_datasets", "cacheddata.pth")
-        if os.path.exists(data_cache_path):
-            os.remove(data_cache_path)
+    train_path = os.path.join(out_path, train_prefix)
+    valid_path = os.path.join(out_path, valid_prefix)
+    test_path = os.path.join(out_path, test_prefix)
 
-        train = process(
-            path=os.path.join(test_dir_path, "test_datasets"),
-            train="sample_table_small.csv",
-            id_attr="id",
-            embeddings=embeddings,
-            embeddings_cache_path="",
-            pca=False,
-        )
+    train = pd.read_csv(train_path)
+    valid = pd.read_csv(valid_path)
+    test = pd.read_csv(test_path)
 
-        train_raw = train.get_raw_table()
-        ori_train = pd.read_csv(
-            os.path.join(test_dir_path, "test_datasets", "sample_table_small.csv")
-        )
-        self.assertEqual(set(train_raw.columns), set(ori_train.columns))
+    assert list(train.columns) == ori_cols
+    assert list(valid.columns) == ori_cols
+    assert list(test.columns) == ori_cols
 
-        if os.path.exists(data_cache_path):
-            os.remove(data_cache_path)
+    if os.path.exists(train_path):
+        os.remove(train_path)
+    if os.path.exists(valid_path):
+        os.remove(valid_path)
+    if os.path.exists(test_path):
+        os.remove(test_path)
 
-        if os.path.exists(vectors_cache_dir):
-            shutil.rmtree(vectors_cache_dir)
+
+def test_split_2():
+    labeled_path = os.path.join(
+        test_dir_path, "test_datasets", "sample_table_large.csv"
+    )
+    labeled_table = pd.read_csv(labeled_path)
+    ori_cols = list(labeled_table.columns)
+    out_path = os.path.join(test_dir_path, "test_datasets")
+    train_prefix = "train.csv"
+    valid_prefix = "valid.csv"
+    test_prefix = "test.csv"
+    split(labeled_path, out_path, train_prefix, valid_prefix, test_prefix)
+
+    train_path = os.path.join(out_path, train_prefix)
+    valid_path = os.path.join(out_path, valid_prefix)
+    test_path = os.path.join(out_path, test_prefix)
+
+    train = pd.read_csv(train_path)
+    valid = pd.read_csv(valid_path)
+    test = pd.read_csv(test_path)
+
+    assert list(train.columns) == ori_cols
+    assert list(valid.columns) == ori_cols
+    assert list(test.columns) == ori_cols
+
+    if os.path.exists(train_path):
+        os.remove(train_path)
+    if os.path.exists(valid_path):
+        os.remove(valid_path)
+    if os.path.exists(test_path):
+        os.remove(test_path)
+
+
+def test_get_raw_table():
+    vectors_cache_dir = ".cache"
+    if os.path.exists(vectors_cache_dir):
+        shutil.rmtree(vectors_cache_dir)
+
+    data_cache_path = os.path.join(test_dir_path, "test_datasets", "cacheddata.pth")
+    if os.path.exists(data_cache_path):
+        os.remove(data_cache_path)
+
+    train = process(
+        path=os.path.join(test_dir_path, "test_datasets"),
+        train="sample_table_small.csv",
+        id_attr="id",
+        embeddings=embeddings,
+        embeddings_cache_path="",
+        pca=False,
+    )
+
+    train_raw = train.get_raw_table()
+    ori_train = pd.read_csv(
+        os.path.join(test_dir_path, "test_datasets", "sample_table_small.csv")
+    )
+    assert set(train_raw.columns) == set(ori_train.columns)
+
+    if os.path.exists(data_cache_path):
+        os.remove(data_cache_path)
+
+    if os.path.exists(vectors_cache_dir):
+        shutil.rmtree(vectors_cache_dir)
