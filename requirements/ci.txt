@@ -10,6 +10,7 @@ flake8-print
 flake8-quotes
 flake8-tuple
 isort
+mypy
 pre-commit
 pytest
 pytest-sugar

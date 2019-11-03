@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import List
 
 import nltk
 from torchtext import data, vocab
@@ -36,8 +37,6 @@ class MatchingVocab(vocab.Vocab):
 class MatchingField(data.Field):
     vocab_cls = MatchingVocab
 
-    _cached_vec_data = {}
-
     def __init__(self, tokenize="nltk", id=False, **kwargs):  # noqa: A002
         self.tokenizer_arg = tokenize
         self.is_id = id
@@ -67,25 +66,13 @@ class MatchingField(data.Field):
         return args_dict
 
     @classmethod
-    def _get_vector_data(cls, vecs, cache):
+    def _get_vector_data(cls, vecs: FastText, cache: str) -> List[FastText]:
         if not isinstance(vecs, list):
             vecs = [vecs]
 
         vec_datas = []
         for vec in vecs:
-            if not isinstance(vec, vocab.Vectors):
-                vec_name = vec
-                vec_data = cls._cached_vec_data.get(vec_name)
-                if vec_data is None:
-                    parts = vec_name.split(".")
-                    if parts[0] == "fasttext":
-                        vec_data = FastText(language=parts[1])
-                if vec_data is None:
-                    vec_data = vocab.pretrained_aliases[vec_name](cache=cache)
-                cls._cached_vec_data[vec_name] = vec_data
-                vec_datas.append(vec_data)
-            else:
-                vec_datas.append(vec)
+            vec_datas.append(vec)
 
         return vec_datas
 
@@ -99,14 +86,11 @@ class MatchingField(data.Field):
     def extend_vocab(self, *args, vectors=None, cache=None):
         sources = []
         for arg in args:
-            if isinstance(arg, data.Dataset):
-                sources += [
-                    getattr(arg, name)
-                    for name, field in arg.fields.items()
-                    if field is self
-                ]
-            else:
-                sources.append(arg)
+            sources += [
+                getattr(arg, name)
+                for name, field in arg.fields.items()
+                if field is self
+            ]
 
         tokens = set()
         for source in sources:
@@ -124,7 +108,3 @@ class MatchingField(data.Field):
         if not self.is_id:
             return super(MatchingField, self).numericalize(arr, *args, **kwargs)
         return arr
-
-
-def reset_vector_cache():
-    MatchingField._cached_vec_data = {}
