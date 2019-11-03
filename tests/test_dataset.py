@@ -13,18 +13,17 @@ from deepmatcher.data.process import _make_fields, process
 from tests import embeddings, test_dir_path
 
 
-class ClassMatchingDatasetTestCases(unittest.TestCase):
-    def test_init_1(self):
-        fields = [("left_a", MatchingField()), ("right_a", MatchingField())]
-        col_naming = {"id": "id", "label": "label", "left": "left", "right": "right"}
-        path = os.path.join(test_dir_path, "test_datasets", "sample_table_small.csv")
-        md = MatchingDataset(fields, col_naming, path=path)
-        self.assertEqual(md.id_field, "id")
-        self.assertEqual(md.label_field, "label")
-        self.assertEqual(md.all_left_fields, ["left_a"])
-        self.assertEqual(md.all_right_fields, ["right_a"])
-        self.assertEqual(md.all_text_fields, ["left_a", "right_a"])
-        self.assertEqual(md.canonical_text_fields, ["_a"])
+def test_class_matching_dataset():
+    fields = [("left_a", MatchingField()), ("right_a", MatchingField())]
+    col_naming = {"id": "id", "label": "label", "left": "left", "right": "right"}
+    path = os.path.join(test_dir_path, "test_datasets", "sample_table_small.csv")
+    md = MatchingDataset(fields, col_naming, path=path)
+    assert md.id_field == "id"
+    assert md.label_field == "label"
+    assert md.all_left_fields == ["left_a"]
+    assert md.all_right_fields == ["right_a"]
+    assert md.all_text_fields == ["left_a", "right_a"]
+    assert md.canonical_text_fields == ["_a"]
 
 
 class MatchingDatasetSplitsTestCases(unittest.TestCase):
