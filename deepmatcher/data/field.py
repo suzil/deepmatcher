@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List
+from typing import Callable, List, Union
 
 import nltk
 from torchtext import data, vocab
@@ -37,14 +37,16 @@ class MatchingVocab(vocab.Vocab):
 class MatchingField(data.Field):
     vocab_cls = MatchingVocab
 
-    def __init__(self, tokenize="nltk", id=False, **kwargs):  # noqa: A002
+    def __init__(
+        self, tokenize: str = "nltk", id: bool = False, **kwargs  # noqa: A002
+    ):
         self.tokenizer_arg = tokenize
         self.is_id = id
         tokenize = MatchingField._get_tokenizer(tokenize)
         super(MatchingField, self).__init__(tokenize=tokenize, **kwargs)
 
     @staticmethod
-    def _get_tokenizer(tokenizer):
+    def _get_tokenizer(tokenizer: str) -> Union[str, Callable[[str], List[str]]]:
         if tokenizer == "nltk":
             return nltk.word_tokenize
         return tokenizer
@@ -66,7 +68,7 @@ class MatchingField(data.Field):
         return args_dict
 
     @classmethod
-    def _get_vector_data(cls, vecs: FastText, cache: str) -> List[FastText]:
+    def _get_vector_data(cls, vecs: FastText) -> List[FastText]:
         if not isinstance(vecs, list):
             vecs = [vecs]
 
@@ -76,15 +78,15 @@ class MatchingField(data.Field):
 
         return vec_datas
 
-    def build_vocab(self, *args, vectors=None, cache=None, **kwargs):
+    def build_vocab(self, *args, vectors=None, cache: str = None, **kwargs):
         if cache is not None:
             cache = os.path.expanduser(cache)
         if vectors is not None:
-            vectors = MatchingField._get_vector_data(vectors, cache)
+            vectors = MatchingField._get_vector_data(vectors)
         super(MatchingField, self).build_vocab(*args, vectors=vectors, **kwargs)
 
-    def extend_vocab(self, *args, vectors=None, cache=None):
-        sources = []
+    def extend_vocab(self, *args, vectors=None, cache: str = None):
+        sources: List[str] = []
         for arg in args:
             sources += [
                 getattr(arg, name)
@@ -101,7 +103,7 @@ class MatchingField(data.Field):
                     tokens.update(x)
 
         if self.vocab.vectors is not None:
-            vectors = MatchingField._get_vector_data(vectors, cache)
+            vectors = MatchingField._get_vector_data(vectors)
             self.vocab.extend_vectors(tokens, vectors)
 
     def numericalize(self, arr, *args, **kwargs):
