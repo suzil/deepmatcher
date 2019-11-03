@@ -1,13 +1,14 @@
 import logging
+from typing import List
 
-from torchtext import data
+from torchtext.data import BucketIterator, Iterator
 
 from deepmatcher.batch import MatchingBatch
 
 logger = logging.getLogger(__name__)
 
 
-class MatchingIterator(data.BucketIterator):
+class MatchingIterator(BucketIterator):
     def __init__(
         self, dataset, train_info, train, batch_size, sort_in_buckets=None, **kwargs
     ):
@@ -25,34 +26,34 @@ class MatchingIterator(data.BucketIterator):
 
     def create_batches(self):
         if self.sort_in_buckets:
-            return data.BucketIterator.create_batches(self)
+            return BucketIterator.create_batches(self)
         else:
-            return data.Iterator.create_batches(self)
+            return Iterator.create_batches(self)
 
+    @staticmethod
+    def splits(datasets: List[BucketIterator], batch_sizes: List[int] = None, **kwargs):
+        """Create Iterator objects for multiple splits of a dataset.
 
-def create_matching_splits(datasets, batch_sizes=None, **kwargs):
-    """Create Iterator objects for multiple splits of a dataset.
+        Args:
+            datasets: Tuple of Dataset objects corresponding to the splits. The
+                first such object should be the train set.
+            batch_sizes: Tuple of batch sizes to use for the different splits,
+                or None to use the same batch_size for all splits.
+            Remaining keyword arguments: Passed to the constructor of the
+                iterator class being used.
 
-    Args:
-        datasets: Tuple of Dataset objects corresponding to the splits. The
-            first such object should be the train set.
-        batch_sizes: Tuple of batch sizes to use for the different splits,
-            or None to use the same batch_size for all splits.
-        Remaining keyword arguments: Passed to the constructor of the
-            iterator class being used.
-
-    """
-    if batch_sizes is None:
-        batch_sizes = [kwargs.pop("batch_size")] * len(datasets)
-    ret = []
-    for i in range(len(datasets)):
-        ret.append(
-            MatchingIterator(
-                datasets[i],
-                train_info=datasets[0],
-                train=i == 0,
-                batch_size=batch_sizes[i],
-                **kwargs
+        """
+        if batch_sizes is None:
+            batch_sizes = [kwargs.pop("batch_size")] * len(datasets)
+        ret = []
+        for i in range(len(datasets)):
+            ret.append(
+                MatchingIterator(
+                    datasets[i],
+                    train_info=datasets[0],
+                    train=i == 0,
+                    batch_size=batch_sizes[i],
+                    **kwargs
+                )
             )
-        )
-    return tuple(ret)
+        return tuple(ret)

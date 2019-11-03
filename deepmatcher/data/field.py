@@ -71,21 +71,16 @@ class MatchingField(data.Field):
     def _get_vector_data(cls, vecs: FastText) -> List[FastText]:
         if not isinstance(vecs, list):
             vecs = [vecs]
+        return vecs
 
-        vec_datas = []
-        for vec in vecs:
-            vec_datas.append(vec)
-
-        return vec_datas
-
-    def build_vocab(self, *args, vectors=None, cache: str = None, **kwargs):
+    def build_vocab(self, *args, vectors: FastText = None, cache: str = None, **kwargs):
         if cache is not None:
             cache = os.path.expanduser(cache)
         if vectors is not None:
             vectors = MatchingField._get_vector_data(vectors)
         super(MatchingField, self).build_vocab(*args, vectors=vectors, **kwargs)
 
-    def extend_vocab(self, *args, vectors=None, cache: str = None):
+    def extend_vocab(self, *args, vectors: FastText = None, cache: str = None):
         sources: List[str] = []
         for arg in args:
             sources += [
@@ -106,7 +101,7 @@ class MatchingField(data.Field):
             vectors = MatchingField._get_vector_data(vectors)
             self.vocab.extend_vectors(tokens, vectors)
 
-    def numericalize(self, arr, *args, **kwargs):
+    def numericalize(self, arr: List[str], *args, **kwargs):
         if not self.is_id:
             return super(MatchingField, self).numericalize(arr, *args, **kwargs)
         return arr
