@@ -3,6 +3,7 @@ import os
 import shutil
 
 import pytest
+from conftest import embeddings, test_dir_path
 from torchtext.utils import unicode_csv_reader
 
 from deepmatcher import MatchingModel
@@ -12,7 +13,6 @@ from deepmatcher.data.process import (
     process,
     process_unlabeled,
 )
-from tests import embeddings, test_dir_path
 
 
 def test_check_header_1():
