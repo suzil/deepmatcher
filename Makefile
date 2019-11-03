@@ -9,6 +9,7 @@ lint:
 	isort --check-only setup.py --diff
 
 test:
+	mypy deepmatcher/
 	python -m pytest
 
 install:

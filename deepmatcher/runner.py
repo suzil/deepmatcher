@@ -14,7 +14,7 @@ from deepmatcher.optim import Optimizer, SoftNLLLoss
 from deepmatcher.utils import tally_parameters
 
 try:
-    get_ipython
+    get_ipython  # type: ignore
     from tqdm import tqdm_notebook as tqdm
 except NameError:
     from tqdm import tqdm
