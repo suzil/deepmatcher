@@ -3,6 +3,7 @@ import logging
 import os
 from collections import Counter, defaultdict
 from timeit import default_timer as timer
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 import pyprind
@@ -22,14 +23,14 @@ logger = logging.getLogger(__name__)
 
 
 def split(
-    table,
-    path,
-    train_prefix,
-    validation_prefix,
-    test_prefix,
-    split_ratio=(0.6, 0.2, 0.2),
-    stratified=False,
-    strata_field="label",
+    table: pd.DataFrame,
+    path: str,
+    train_prefix: str,
+    validation_prefix: str,
+    test_prefix: str,
+    split_ratio: Tuple[float, float, float] = (0.6, 0.2, 0.2),
+    stratified: bool = False,
+    strata_field: str = "label",
 ):
     """Split a pandas dataframe or CSV file into train / validation / test data sets.
 
@@ -106,12 +107,12 @@ class MatchingDataset(data.Dataset):
 
     def __init__(
         self,
-        fields,
-        column_naming,
-        path=None,
-        out_format="csv",
-        examples=None,
-        metadata=None,
+        fields: List[Tuple[str, MatchingField]],
+        column_naming: Dict[str, str],
+        path: str,
+        out_format: str = "csv",
+        examples: List[Example] = None,
+        metadata: Dict[str, Dict[str, Any]] = None,
         **kwargs
     ):
         """Creates a MatchingDataset.
@@ -217,7 +218,7 @@ class MatchingDataset(data.Dataset):
         self.label_field = self.column_naming["label"]
         self.id_field = self.column_naming["id"]
 
-    def compute_metadata(self, pca=False):
+    def compute_metadata(self, pca: bool = False):
         """Computes metadata about the dataset.
 
         Computes the following metadata about the dataset:
@@ -242,7 +243,7 @@ class MatchingDataset(data.Dataset):
         train_iter = MatchingIterator(
             self, self, train=False, batch_size=1024, device=-1, sort_in_buckets=False
         )
-        counter = defaultdict(Counter)
+        counter: Dict[str, Counter] = defaultdict(Counter)
 
         # For each attribute, find the number of times each word id occurs in the dataset.
         # Note that word ids here also include ``UNK`` tokens, padding tokens, etc.
@@ -271,15 +272,15 @@ class MatchingDataset(data.Dataset):
         # To compute principal components, we need to compute weighted sequence embeddings
         # for each attribute. To do so, for each attribute, we first construct a neural
         # network to compute word embeddings and take their weighted average.
-        field_embed = {}
-        embed = {}
+        field_embed: Dict[MatchingField, NoMeta] = {}
+        embed: Dict[str, NoMeta] = {}
         inv_freq_pool = Pool("inv-freq-avg")
         for name in self.all_text_fields:
             field = self.fields[name]
             if field not in field_embed:
                 vectors_size = field.vocab.vectors.shape
                 embed_layer = nn.Embedding(vectors_size[0], vectors_size[1])
-                embed_layer.weight.data.copy_(field.vocab.vectors)
+                embed_layer.weight.data.copy_(field.vocab.vectors)  # type: ignore
                 embed_layer.weight.requires_grad = False
                 field_embed[field] = NoMeta(embed_layer)
             embed[name] = field_embed[field]
@@ -288,7 +289,7 @@ class MatchingDataset(data.Dataset):
         train_iter = MatchingIterator(
             self, self, train=False, batch_size=1024, device=-1, sort_in_buckets=False
         )
-        attr_embeddings = defaultdict(list)
+        attr_embeddings: Dict[str, List[torch.Tensor]] = defaultdict(list)
 
         # Run the constructed neural network to compute weighted sequence embeddings
         # for each attribute of each example in the dataset.
